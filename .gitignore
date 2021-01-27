@@ -1,0 +1,9 @@
+linux-*/
+gcov-data*/
+mc-benchmark/
+kernels/
+stats/
+images/
+*.log
+*.tar.gz
+*.tar.xz
