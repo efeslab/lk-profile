@@ -28,16 +28,16 @@ PGSQL_PORT=5432
 REDIS_BENCH_FLAGS=(
     '-h 127.0.0.1'
     "-p $REDIS_PORT"
-    '-n 160000'
-    '-c 16'
-    '-d 16'
+    '-n 25000'
+    '-c 5'
+    '-d 5'
 )
 MC_BENCH_FLAGS=(
     '-h 127.0.0.1'
     "-p $MEMCACHED_PORT"
-    '-n 1600000'
-    '-c 16'
-    '-d 16'
+    '-n 250000'
+    '-c 5'
+    '-d 5'
 )
 NGINX_BENCH_FLAGS=(
     '-t 120'
@@ -53,12 +53,12 @@ APACHE_BENCH_FLAGS=(
 )
 LEVELDB_BENCH_FLAGS=(
     '--db=/root/leveldbbench'
-    '--num=6000000'
+    '--num=2500000'
     '--benchmarks=fillseq,fillrandom,readseq,readrandom,deleteseq,deleterandom,stats'
 )
 ROCKSDB_BENCH_FLAGS=(
     '--db=/root/rocksdbbench'
-    '--num=4500000'
+    '--num=2000000'
     '--benchmarks=fillseq,fillrandom,readseq,readrandom,deleteseq,deleterandom,stats'
 )
 MYSQL_PREP_FLAGS=(
@@ -145,7 +145,8 @@ start_gcov() {
 setup() {
     guest_cmd "date"
     guest_cmd "echo 0 | tee /proc/sys/kernel/randomize_va_space"
-    guest_cmd "echo 1 | tee /proc/sys/net/ipv4/tcp_tw_reuse"
+    guest_cmd "echo 3 | tee /proc/sys/vm/drop_caches"
+    guest_cmd "echo 2 | tee /proc/sys/net/ipv4/tcp_tw_reuse"
     start_gcov
 }
 
