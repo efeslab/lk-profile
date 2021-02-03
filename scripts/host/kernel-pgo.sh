@@ -44,7 +44,7 @@ echo "Compiling kernel..."
 #
 make \
     KCFLAGS="-fprofile-use=$BUILD_DIR -fprofile-correction -Wno-coverage-mismatch -Wno-error=coverage-mismatch" \
-    -j4 \
+    -j8 \
     2>&1 | tee ../$COMPILE_LOG
 
 find . -name "*.gcda" -exec rm {} \;
