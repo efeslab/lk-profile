@@ -3,14 +3,17 @@
 set -e
 
 GCOV=${GCOV:-0}
+CLANG=${CLANG:-0}
 
 echo "GCOV: $GCOV"
+echo "CLANG: $CLANG"
 
 BENCHMARK=$1
-BENCH_OUTPUT=${3:-$2}
+BENCHMARK_TAR=$2
+BENCH_OUTPUT=${4:-$3}
 
-if [[ -z $BENCH_OUTPUT ]]; then
-    echo "Usage: $0 benchmark {options} path/to/output.log"
+if [[ -z $BENCH_OUTPUT || -z $BENCHMARK_TAR ]]; then
+    echo "Usage: $0 benchmark benchmark_tar_name {options} path/to/output.log"
     exit 1
 fi
 
@@ -136,9 +139,12 @@ service() {
     set -e
 }
 
-start_gcov() {
+start_prof() {
     if [[ $GCOV -eq 1 ]]; then
         guest_cmd "touch /sys/kernel/debug/gcov/reset"
+    fi
+    if [[ $CLANG -eq 1 ]]; then
+        guest_cmd "echo 1 > /sys/kernel/debug/pgo/reset"
     fi
 }
 
@@ -147,17 +153,21 @@ setup() {
     guest_cmd "echo 0 | tee /proc/sys/kernel/randomize_va_space"
     guest_cmd "echo 3 | tee /proc/sys/vm/drop_caches"
     guest_cmd "echo 2 | tee /proc/sys/net/ipv4/tcp_tw_reuse"
-    start_gcov
+    start_prof
 }
 
 collect() {
     if [[ $GCOV -eq 1 ]]; then
-        guest_cmd "cd / && time ./root/gather.sh $BENCHMARK.tar.gz"
+        guest_cmd "cd / && time ./root/gather.sh $BENCHMARK_TAR.tar.gz"
+    fi
+    if [[ $CLANG -eq 1 ]]; then
+        guest_cmd "cp -a /sys/kernel/debug/pgo/profraw /$BENCHMARK_TAR.profraw"
     fi
 }
 
 guest_shutdown() {
     guest_cmd poweroff
+    echo "guest_shutdown"
 }
 
 case "$BENCHMARK" in
@@ -209,7 +219,7 @@ case "$BENCHMARK" in
         guest_shutdown
         ;;
     mysql)
-        case "$2" in
+        case "$3" in
             prepare)
                 guest_cmd "date"
                 guest_cmd "service mysql restart"
@@ -250,9 +260,7 @@ case "$BENCHMARK" in
             run)
                 setup
                 guest_cmd "service postgresql restart"
-                set +e
                 time $SYSBENCH ${PGSQL_RUN_FLAGS[@]} | tee $BENCH_OUTPUT
-                set -e
                 collect
                 guest_shutdown
                 ;;
