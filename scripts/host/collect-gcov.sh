@@ -4,7 +4,7 @@ LINUX=${1:-}
 DISK=${2:-}
 APP=${3:-}
 
-GCOV_BIN=/usr/bin/gcov
+GCOV_BIN=/usr/bin/gcov-7
 
 if [[ -z $APP || -z $LINUX || -z $DISK ]]; then
     echo "Usage: $0 linux-version path/to/disk.img {redis|memcached|nginx|apache|leveldb|rocksdb|mysql|postgresql}"
@@ -55,11 +55,11 @@ for FILE in "${FILES[@]}"; do
     $GCOV_BIN -a -b -f -m -p -o $APPDIR/$FILEDIR $SOURCE > /dev/null
 
     # Create and unzip the json summary
-    $GCOV_BIN -a -b -i -o $APPDIR/$FILEDIR $SOURCE > /dev/null
+    # $GCOV_BIN -a -b -i -o $APPDIR/$FILEDIR $SOURCE > /dev/null
 
-    mv $OUTPUTGZ $APPDIR/$FILEDIR
-    cd $APPDIR/$FILEDIR
-    gunzip $OUTPUTGZ
+    #mv $OUTPUTGZ $APPDIR/$FILEDIR
+    #cd $APPDIR/$FILEDIR
+    #gunzip $OUTPUTGZ
 
     cd $LINUXDIR
 done

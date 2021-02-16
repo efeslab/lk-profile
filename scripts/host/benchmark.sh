@@ -3,17 +3,17 @@
 set -e
 
 GCOV=${GCOV:-0}
-CLANG=${CLANG:-0}
+PROFILE=${PROFILE:-0}
 
 echo "GCOV: $GCOV"
-echo "CLANG: $CLANG"
+echo "PROFILE: $PROFILE"
 
 BENCHMARK=$1
-BENCHMARK_TAR=$2
+PROFILE_NAME=$2
 BENCH_OUTPUT=${4:-$3}
 
-if [[ -z $BENCH_OUTPUT || -z $BENCHMARK_TAR ]]; then
-    echo "Usage: $0 benchmark benchmark_tar_name {options} path/to/output.log"
+if [[ -z $BENCH_OUTPUT || -z $PROFILE_NAME ]]; then
+    echo "Usage: $0 benchmark profile_name {options} path/to/output.log"
     exit 1
 fi
 
@@ -143,7 +143,7 @@ start_prof() {
     if [[ $GCOV -eq 1 ]]; then
         guest_cmd "touch /sys/kernel/debug/gcov/reset"
     fi
-    if [[ $CLANG -eq 1 ]]; then
+    if [[ $PROFILE -eq 1 ]]; then
         guest_cmd "echo 1 > /sys/kernel/debug/pgo/reset"
     fi
 }
@@ -158,10 +158,10 @@ setup() {
 
 collect() {
     if [[ $GCOV -eq 1 ]]; then
-        guest_cmd "cd / && time ./root/gather.sh $BENCHMARK_TAR.tar.gz"
+        guest_cmd "cd / && time ./root/gather.sh $PROFILE_NAME.tar.gz"
     fi
-    if [[ $CLANG -eq 1 ]]; then
-        guest_cmd "cp -a /sys/kernel/debug/pgo/profraw /$BENCHMARK_TAR.profraw"
+    if [[ $PROFILE -eq 1 ]]; then
+        guest_cmd "cp -a /sys/kernel/debug/pgo/profraw /$PROFILE_NAME.profraw"
     fi
 }
 
@@ -248,7 +248,7 @@ case "$BENCHMARK" in
         esac
         ;;
     postgresql)
-        case "$2" in
+        case "$3" in
             prepare)
                 guest_cmd "date"
                 guest_cmd "service postgresql restart"
