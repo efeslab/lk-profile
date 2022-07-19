@@ -1,6 +1,4 @@
-#!/bin/bash
-
-set -e
+#!/bin/bash -e
 
 GCOV=${GCOV:-0}
 PROFILE=${PROFILE:-0}
@@ -17,6 +15,8 @@ if [[ -z $BENCH_OUTPUT || -z $PROFILE_NAME ]]; then
     exit 1
 fi
 
+RUNS=${RUNS:-1}
+
 # Specific binaries
 MCBENCH=$(pwd)/mc-benchmark/mc-benchmark
 SYSBENCH=/usr/bin/sysbench
@@ -31,7 +31,8 @@ PGSQL_PORT=5432
 REDIS_BENCH_FLAGS=(
     '-h 127.0.0.1'
     "-p $REDIS_PORT"
-    '-n 25000'
+    '-t set,get'
+    '-n 250000'
     '-c 5'
     '-d 5'
 )
@@ -56,13 +57,13 @@ APACHE_BENCH_FLAGS=(
 )
 LEVELDB_BENCH_FLAGS=(
     '--db=/root/leveldbbench'
-    '--num=2500000'
-    '--benchmarks=fillseq,fillrandom,readseq,readrandom,deleteseq,deleterandom,stats'
+    '--num=3000000'
+    '--benchmarks=fillseq,fillrandom,readseq,readrandom,readreverse,stats'
 )
 ROCKSDB_BENCH_FLAGS=(
     '--db=/root/rocksdbbench'
-    '--num=2000000'
-    '--benchmarks=fillseq,fillrandom,readseq,readrandom,deleteseq,deleterandom,stats'
+    '--num=3000000'
+    '--benchmarks=fillseq,fillrandom,readseq,readrandom,readreverse,stats'
 )
 MYSQL_PREP_FLAGS=(
     '--db-driver=mysql'
@@ -148,7 +149,7 @@ start_prof() {
     fi
 }
 
-setup() {
+setup() { 
     guest_cmd "date"
     guest_cmd "echo 0 | tee /proc/sys/kernel/randomize_va_space"
     guest_cmd "echo 3 | tee /proc/sys/vm/drop_caches"
@@ -161,7 +162,7 @@ collect() {
         guest_cmd "cd / && time ./root/gather.sh $PROFILE_NAME.tar.gz"
     fi
     if [[ $PROFILE -eq 1 ]]; then
-        guest_cmd "cp -a /sys/kernel/debug/pgo/profraw /$PROFILE_NAME.profraw"
+        guest_cmd "cp -a /sys/kernel/debug/pgo/profraw /$PROFILE_NAME-$1.profraw"
     fi
 }
 
@@ -175,47 +176,59 @@ case "$BENCHMARK" in
         setup
         guest_cmd "sysctl -w fs.file-max=100000"
         guest_cmd "redis-server --maxclients 100000 --port $REDIS_PORT --protected-mode no &"
-        time redis-benchmark ${REDIS_BENCH_FLAGS[@]} | tee $BENCH_OUTPUT
-        collect
+        for i in $(eval echo "{1..$RUNS}"); do
+            time redis-benchmark ${REDIS_BENCH_FLAGS[@]} | tee $BENCH_OUTPUT-$i
+            collect $i
+        done
         guest_shutdown
         ;;
     memcached)
         setup
         guest_cmd "memcached -p $MEMCACHED_PORT -u nobody &"
-        time $MCBENCH ${MC_BENCH_FLAGS[@]} | tee $BENCH_OUTPUT
-        collect
+        for i in $(eval echo "{1..$RUNS}"); do
+            time $MCBENCH ${MC_BENCH_FLAGS[@]} | tee $BENCH_OUTPUT-$i
+            collect $i
+        done
         guest_shutdown
         ;;
     nginx)
         setup
         guest_cmd "service nginx start"
-        time ab ${NGINX_BENCH_FLAGS[@]} | tee $BENCH_OUTPUT
-        collect
+        for i in $(eval echo "{1..$RUNS}"); do
+            time ab ${NGINX_BENCH_FLAGS[@]} | tee $BENCH_OUTPUT-$i
+            collect $i
+        done
         guest_shutdown
         ;;
     apache)
         setup
         guest_cmd "apache2ctl start"
-        time ab ${APACHE_BENCH_FLAGS[@]} | tee $BENCH_OUTPUT
-        collect
+        for i in $(eval echo "{1..$RUNS}"); do
+            time ab ${APACHE_BENCH_FLAGS[@]} | tee $BENCH_OUTPUT-$i
+            collect $i
+        done
         guest_shutdown
         ;;
     leveldb)
         FLAGS=${LEVELDB_BENCH_FLAGS[@]}
         setup
-        guest_cmd "mkdir -p /root/leveldbbench"
-        time_guest_cmd "./leveldb/build/db_bench $FLAGS" | tee $BENCH_OUTPUT
-        collect
-        guest_cmd "rm -rf /root/leveldbbench"
+        for i in $(eval echo "{1..$RUNS}"); do
+            guest_cmd "mkdir -p /root/leveldbbench"
+            time_guest_cmd "./leveldb/build/db_bench $FLAGS" | tee $BENCH_OUTPUT-$i
+            collect $i
+            guest_cmd "rm -rf /root/leveldbbench"
+        done
         guest_shutdown
         ;;
     rocksdb)
         FLAGS=${ROCKSDB_BENCH_FLAGS[@]}
         setup
-        guest_cmd "mkdir -p /root/rocksdbbench"
-        time_guest_cmd "./rocksdb/build/db_bench $FLAGS" | tee $BENCH_OUTPUT
-        collect
-        guest_cmd "rm -rf /root/rocksdbbench"
+        for i in $(eval echo "{1..$RUNS}"); do
+            guest_cmd "mkdir -p /root/rocksdbbench"
+            time_guest_cmd "./rocksdb/build/db_bench $FLAGS" | tee $BENCH_OUTPUT-$i
+            collect $i
+            guest_cmd "rm -rf /root/rocksdbbench"
+        done
         guest_shutdown
         ;;
     mysql)
@@ -231,8 +244,10 @@ case "$BENCHMARK" in
             run)
                 setup
                 guest_cmd "service mysql restart"
-                time $SYSBENCH ${MYSQL_RUN_FLAGS[@]} | tee $BENCH_OUTPUT
-                collect
+                for i in $(eval echo "{1..$RUNS}"); do
+                    time $SYSBENCH ${MYSQL_RUN_FLAGS[@]} | tee $BENCH_OUTPUT-$i
+                    collect $i
+                done
                 guest_shutdown
                 ;;
             drop)
@@ -260,8 +275,10 @@ case "$BENCHMARK" in
             run)
                 setup
                 guest_cmd "service postgresql restart"
-                time $SYSBENCH ${PGSQL_RUN_FLAGS[@]} | tee $BENCH_OUTPUT
-                collect
+                for i in $(eval echo "{1..$RUNS}"); do
+                    time $SYSBENCH ${PGSQL_RUN_FLAGS[@]} | tee $BENCH_OUTPUT-$i
+                    collect $i
+                done
                 guest_shutdown
                 ;;
             drop)

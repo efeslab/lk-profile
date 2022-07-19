@@ -2,6 +2,7 @@ linux*/
 mc-benchmark/
 kernels/
 stats/
+results/
 images/
 profiles/
 *.log

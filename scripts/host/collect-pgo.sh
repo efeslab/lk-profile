@@ -11,16 +11,15 @@ fi
 MOUNTDIR=/mnt/tmppgofs
 BASEDIR=$(pwd)
 OUTPUTDIR=$BASEDIR/profiles
-PROFILE=$PROFILE_NAME.profraw
 
 sudo mkdir -p $MOUNTDIR
 mkdir -p $OUTPUTDIR
 
 # Copy data to output directory
 sudo mount -t ext4 $DISK $MOUNTDIR
-sudo cp $MOUNTDIR/$PROFILE $OUTPUTDIR
+sudo cp $MOUNTDIR/$PROFILE_NAME* $OUTPUTDIR
 sudo umount $MOUNTDIR
 
-sudo chmod 644 $OUTPUTDIR/$PROFILE
-sudo chown $(whoami):$(whoami) $OUTPUTDIR/$PROFILE
+sudo chmod 644 $OUTPUTDIR/$PROFILE_NAME*
+sudo chown $(whoami):$(whoami) $OUTPUTDIR/$PROFILE_NAME*
 

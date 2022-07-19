@@ -12,7 +12,7 @@ fi
 cd linux
 
 echo "Copying config"
-cp ../configs/config-5.11 .
+cp ../configs/config-5.11 .config
 
 echo "Cleaning build..."
 make clean
