@@ -3,8 +3,9 @@
 The scripts here support Clang-based PGO and GCOV-based profile collection for
 the Linux kernel. This project uses QEMU for system emulation to run benchmarks 
 for specific data center applications. These applications include Apache, 
-Nginx, Redis, Memcached, Leveldb, Rocksdb, MySQL, and PostgreSQL. 
+Nginx, Redis, Memcached, Leveldb, Rocksdb, MySQL, and PostgreSQL.
 
+Please cite the following [paper](https://web.eecs.umich.edu/~takh/papers/ugur-one-profile-fits-all-osr-2022.pdf) if you use this artifact:
 
 ```
 @article{ugur2022oneprof,
